@@ -1,8 +1,10 @@
 package com.spidergod.saveoassignment.ui.presentation.movie_home_screen
 
+import android.os.Bundle
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -20,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,11 +30,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberImagePainter
+import com.spidergod.saveoassignment.data.converters.Converter.movieResponseDtoItemToMovieDetailParcelable
+import com.spidergod.saveoassignment.data.converters.Converter.movieResponseHorizontalPagerDtoItemToMovieDetailParcelable
+import com.spidergod.saveoassignment.data.parcelables.MovieDetailParcelable
 import com.spidergod.saveoassignment.data.remote.dto.movie_response_dto.MovieResponseDtoItem
 import com.spidergod.saveoassignment.data.remote.dto.movie_response_for_horizontal_pager_dto.MovieResponseForHorizontalPagerDtoItem
 import com.spidergod.saveoassignment.ui.componenets.movie_pager.Pager
 import com.spidergod.saveoassignment.ui.componenets.movie_pager.PagerState
 import com.spidergod.saveoassignment.ui.theme.Blumine
+import com.spidergod.saveoassignment.util.Constants.DETAIL_SCREEN_ARGUMENT
+import com.spidergod.saveoassignment.util.Constants.MOVIE_DETAIL_SCREEN
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -61,7 +69,16 @@ fun MovieHomeScreen(
                 state = lazyListScrollState
             ) {
                 item {
-                    HorizontalPager(viewModel.horizontalPagerData)
+                    HorizontalPager(viewModel.horizontalPagerData,
+                        onItemClick = { responseHorizontalPagerItem ->
+                            NavigateToMovieDetailScreen(
+                                navController = navController,
+                                movieDetailParcelable = movieResponseHorizontalPagerDtoItemToMovieDetailParcelable(
+                                    responseHorizontalPagerItem
+                                )
+                            )
+                        }
+                    )
                 }
                 item {
                     Column {
@@ -91,39 +108,72 @@ fun MovieHomeScreen(
 
                                 movieListItems[currentItemIndex]?.let { it1 ->
                                     MovieManListGridItem(
-                                        movieData = it1
+                                        movieData = it1,
+                                        onItemClick = { movieResponseItem ->
+                                            NavigateToMovieDetailScreen(
+                                                navController = navController,
+                                                movieDetailParcelable = movieResponseDtoItemToMovieDetailParcelable(
+                                                    movieResponseItem
+                                                )
+                                            )
+                                        }
                                     )
                                 }
                                 if (currentItemIndex < movieListItems.itemCount - 1) {
                                     movieListItems[currentItemIndex + 1]?.let { it1 ->
                                         MovieManListGridItem(
-                                            movieData = it1
+                                            movieData = it1,
+                                            onItemClick = { movieResponseItem ->
+                                                NavigateToMovieDetailScreen(
+                                                    navController = navController,
+                                                    movieDetailParcelable = movieResponseDtoItemToMovieDetailParcelable(
+                                                        movieResponseItem
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
                                 }
                                 if (currentItemIndex < movieListItems.itemCount - 2) {
                                     movieListItems[currentItemIndex + 2]?.let { it1 ->
                                         MovieManListGridItem(
-                                            movieData = it1
+                                            movieData = it1,
+                                            onItemClick = { movieResponseItem ->
+                                                NavigateToMovieDetailScreen(
+                                                    navController = navController,
+                                                    movieDetailParcelable = movieResponseDtoItemToMovieDetailParcelable(
+                                                        movieResponseItem
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
                                 }
                             }
                         }
-
                     }
-
                 }
             }
         }
     }
 }
 
-
-
+fun NavigateToMovieDetailScreen(
+    navController: NavController,
+    movieDetailParcelable: MovieDetailParcelable
+) {
+    navController.currentBackStackEntry?.arguments = Bundle().apply {
+        putParcelable(DETAIL_SCREEN_ARGUMENT, movieDetailParcelable)
+    }
+    navController.navigate(MOVIE_DETAIL_SCREEN)
+}
 
 @Composable
-fun TopAppBar(title: String) {
+fun TopAppBar(
+    iconLeft: ImageVector = Icons.Default.Menu,
+    iconRight: ImageVector = Icons.Default.Search,
+    title: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -137,10 +187,10 @@ fun TopAppBar(title: String) {
                 .padding(horizontal = 15.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+            Icon(imageVector = iconLeft, contentDescription = "Menu", tint = Color.White)
             Text(text = title, color = Color.White, fontSize = 18.sp)
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = iconRight,
                 contentDescription = "Search",
                 tint = Color.White
             )
@@ -150,9 +200,11 @@ fun TopAppBar(title: String) {
 }
 
 
+
 @Composable
 fun MovieManListGridItem(
-    movieData: MovieResponseDtoItem
+    movieData: MovieResponseDtoItem,
+    onItemClick: (MovieResponseDtoItem) -> Unit
 ) {
 
     Column {
@@ -165,6 +217,9 @@ fun MovieManListGridItem(
                 modifier = Modifier
                     .height(155.dp)
                     .width(110.dp)
+                    .clickable {
+                        onItemClick(movieData)
+                    }
             ) {
                 Image(
                     painter = rememberImagePainter(data = movieData.image?.medium),
@@ -182,7 +237,10 @@ fun MovieManListGridItem(
 
 
 @Composable
-fun HorizontalPager(horizontalPagerData: List<MovieResponseForHorizontalPagerDtoItem>) {
+fun HorizontalPager(
+    horizontalPagerData: List<MovieResponseForHorizontalPagerDtoItem>,
+    onItemClick: (MovieResponseForHorizontalPagerDtoItem) -> Unit
+) {
     Box(
         modifier = Modifier.height(151.dp)
     ) {
@@ -202,7 +260,8 @@ fun HorizontalPager(horizontalPagerData: List<MovieResponseForHorizontalPagerDto
                     MoviePagerItem(
                         movie = movie,
                         isSelected = isSelected,
-                        offset = filteredOffset
+                        offset = filteredOffset,
+                        onItemClick = onItemClick
                     )
                     Spacer(modifier = Modifier.size(10.dp))
                 }
@@ -219,7 +278,8 @@ fun HorizontalPager(horizontalPagerData: List<MovieResponseForHorizontalPagerDto
 @Composable
 fun MoviePagerItem(
     movie: MovieResponseForHorizontalPagerDtoItem, isSelected: Boolean,
-    offset: Float
+    offset: Float,
+    onItemClick: (MovieResponseForHorizontalPagerDtoItem) -> Unit
 ) {
     val animateHeight = getOffsetBasedValue(
         selectedValue = 150,
@@ -244,7 +304,10 @@ fun MoviePagerItem(
         elevation = animateDpAsState(animateElevation).value,
         modifier = Modifier
             .width(animateWidth)
-            .height(animateHeight),
+            .height(animateHeight)
+            .clickable {
+                onItemClick(movie)
+            },
         shape = RoundedCornerShape(5.dp),
     ) {
         Image(
