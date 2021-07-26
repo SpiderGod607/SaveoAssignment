@@ -7,9 +7,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
@@ -58,6 +61,7 @@ fun MovieDetailScreen(
                 .padding(it),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            Spacer(modifier = Modifier.size(5.dp))
             TopDetails(movieDetailData = movieDetailData)
             movieDetailData.summary?.let { it1 -> BottomDetail(it1, isTopDetailsVisible) }
         }
@@ -100,6 +104,10 @@ fun BottomDetail(data: String, isTopDetailsVisible: Boolean) {
                             .padding(top = 25.dp)
                             .background(Color.White)
                             .height(400.dp)
+                            .scrollable(
+                                state = rememberScrollState(),
+                                orientation = Orientation.Vertical
+                            )
                     ) {
                         Spacer(modifier = Modifier.height(56.dp))
                         Text(text = "Synopsis", modifier = Modifier.padding(horizontal = 15.dp))
@@ -161,6 +169,9 @@ fun TopDetails(movieDetailData: MovieDetailParcelable) {
                     modifier = Modifier
                         .width(130.dp)
                         .height(190.dp)
+                        .shadow(
+                            elevation = 5.dp
+                        ).background(Color.LightGray)
                 ) {
                     Image(
                         painter = rememberImagePainter(data = movieDetailData.image),

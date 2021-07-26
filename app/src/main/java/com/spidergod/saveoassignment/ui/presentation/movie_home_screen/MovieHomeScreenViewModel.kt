@@ -1,6 +1,8 @@
 package com.spidergod.saveoassignment.ui.presentation.movie_home_screen
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -21,25 +23,36 @@ import javax.inject.Inject
 class MovieHomeScreenViewModel @Inject constructor(
     private val repository: HomeScreenRepository
 ) : ViewModel() {
+    var isHorizontalPagerLoading: MutableState<Boolean>
 
     init {
+        isHorizontalPagerLoading = mutableStateOf(false)
         getDataForHorizontalPager()
     }
 
     val horizontalPagerData = mutableStateListOf<MovieResponseForHorizontalPagerDtoItem>()
 
-
     fun getDataForHorizontalPager() {
-        viewModelScope.launch {
-            val response = repository.getMovieForHorizontalPager()
-            if (response is Resource.Success) {
-                response.data?.let { horizontalPagerData.addAll(it) }
+
+        if ( !isHorizontalPagerLoading.value) {
+            isHorizontalPagerLoading.value = true
+            viewModelScope.launch {
+                val response = repository.getMovieForHorizontalPager()
+
+                if (horizontalPagerData.isNotEmpty()) {
+                    horizontalPagerData.clear()
+                }
+
+                if (response is Resource.Success) {
+                    response.data?.let { horizontalPagerData.addAll(it) }
+                }
+                isHorizontalPagerLoading.value = false
             }
         }
     }
 
     val moviesMainListPaging: Flow<PagingData<MovieResponseDtoItem>> =
-        Pager(PagingConfig(pageSize = 20)) {
+        Pager(PagingConfig(pageSize = 100)) {
             MovieSource(repository)
         }.flow
 

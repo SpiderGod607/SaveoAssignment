@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
@@ -28,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberImagePainter
 import com.spidergod.saveoassignment.data.converters.Converter.movieResponseDtoItemToMovieDetailParcelable
@@ -68,6 +66,9 @@ fun MovieHomeScreen(
             LazyColumn(
                 state = lazyListScrollState
             ) {
+                item{
+                    Spacer(modifier = Modifier.size(10.dp))
+                }
                 item {
                     HorizontalPager(viewModel.horizontalPagerData,
                         onItemClick = { responseHorizontalPagerItem ->
@@ -77,6 +78,10 @@ fun MovieHomeScreen(
                                     responseHorizontalPagerItem
                                 )
                             )
+                        },
+                        isHorizontalPagerLoading = viewModel.isHorizontalPagerLoading.value,
+                        retry = {
+                            viewModel.getDataForHorizontalPager()
                         }
                     )
                 }
@@ -153,6 +158,46 @@ fun MovieHomeScreen(
                         }
                     }
                 }
+
+                movieListItems.apply {
+
+                    when {
+                        loadState.refresh is LoadState.Loading -> {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                        loadState.refresh is LoadState.Error -> {
+                            val e = movieListItems.loadState.refresh as LoadState.Error
+                            item {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "Error :" + e.error.localizedMessage,
+                                            color = Color.White
+                                        )
+                                        Button(onClick = {
+                                            movieListItems.retry()
+                                        }) {
+                                            Text(text = "Retry", color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+
             }
         }
     }
@@ -200,7 +245,6 @@ fun TopAppBar(
 }
 
 
-
 @Composable
 fun MovieManListGridItem(
     movieData: MovieResponseDtoItem,
@@ -219,7 +263,7 @@ fun MovieManListGridItem(
                     .width(110.dp)
                     .clickable {
                         onItemClick(movieData)
-                    }
+                    }.background(Color.LightGray)
             ) {
                 Image(
                     painter = rememberImagePainter(data = movieData.image?.medium),
@@ -239,7 +283,9 @@ fun MovieManListGridItem(
 @Composable
 fun HorizontalPager(
     horizontalPagerData: List<MovieResponseForHorizontalPagerDtoItem>,
-    onItemClick: (MovieResponseForHorizontalPagerDtoItem) -> Unit
+    onItemClick: (MovieResponseForHorizontalPagerDtoItem) -> Unit,
+    isHorizontalPagerLoading: Boolean,
+    retry: () -> Unit
 ) {
     Box(
         modifier = Modifier.height(151.dp)
@@ -269,6 +315,23 @@ fun HorizontalPager(
 
             }
 
+        } else if (isHorizontalPagerLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    color = Color.White
+                )
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "Check your Internet connection", color = Color.White)
+                    Button(onClick = { retry() }) {
+                        Text(text = "Retry", color = Color.White)
+                    }
+                }
+            }
         }
 
     }
@@ -307,7 +370,7 @@ fun MoviePagerItem(
             .height(animateHeight)
             .clickable {
                 onItemClick(movie)
-            },
+            }.background(Color.LightGray),
         shape = RoundedCornerShape(5.dp),
     ) {
         Image(
